@@ -2,6 +2,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
@@ -50,8 +51,7 @@ public class Main {
 				Scanner input = new Scanner(input_file);  			
 						
 				// output file
-	            File output_file = new File(outputfile);
-	            BufferedWriter output = new BufferedWriter(new FileWriter(output_file));
+				PrintWriter out = new PrintWriter(outputfile);
 	            
 	            long i=0;
 				while (input.hasNextLine()) {
@@ -66,11 +66,11 @@ public class Main {
 				EventProcessor<String> ep=new EventProcessor<String>();
 
 				// call algorithm 
-				ep.BaseLine(nodes, print);
+				ep.BaseLine(nodes, out);
 	                       
 	            /*** Close the files ***/
 	       		input.close();
-	       		output.close();        		
+	       		out.close();        		
 	        
 			} catch (IOException e) { System.err.println(e); }		  
 			  

@@ -46,7 +46,7 @@ public class GraphTraversals<Value> {
 	  graphDFSByRecersion();
 	  if(paths.containsKey(sourceNode)){
 		  //System.out.println("Longest Sequences are:");
-		  long i=0;
+		  long i=0;//
 		  for ( LinkedList<Node<Value>> path : paths.get(sourceNode)){
 			//path.addFirst(sourceNode);
 			  //path.removeLast(); // last change

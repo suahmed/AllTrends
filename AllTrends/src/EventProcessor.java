@@ -1,4 +1,6 @@
 
+import java.io.BufferedWriter;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -202,9 +204,141 @@ public class EventProcessor<Value> {
       System.out.println("DAG Construction Time: " + nanoElapsedTime +" ns");
 	  
   }
+
+  public void add2(Node<Value> node) {
+	  if (contains(node)) { System.out.print(" [duplicate] "); return;  }
+	  HashSet<Node<Value>> overlaps = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> successors = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> predecessors = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> predecessorsOfO = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> successorsOfO = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> predecessorsOfS = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> successorsOfP = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> predecessorsOfP = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> successorsOfS = new HashSet<Node<Value>>();
+	  
+	  // find predecessors
+	  
+	  
+	  // update predecessors' successor
+	  
+	  // assign predecessor
+	  
+	  // assign targetnode as successor
+	  
+	  overlaps = intervalTree.searchAll(node.interval); // O
+	  //System.out.println("O1:"+overlaps);
+
+
+	  Node<Value> next=intervalTree.searchSuccessor(new Interval1D(node.interval.high+1,node.interval.high+1));
+	  //System.out.println("NEXT:"+next);
+	  successors=intervalTree.searchAll(next.interval);
+	  successors.removeAll(overlaps);
+	  
+	  for(Node<Value> o: successors){
+		  if (o.successors!=null)
+			  successorsOfS.addAll(o.successors); // S(S)  
+	  }
+
+	  successors.removeAll(successorsOfS);
+
+	  //System.out.println("S1:"+successors);
+	  
+
+	  if (!overlaps.isEmpty()){
+		  for(Node<Value> o: overlaps){
+			  predecessorsOfO.addAll(o.predecessors); // P
+		  }
+		  predecessorsOfO.removeAll(overlaps); // P= P-O
+		  
+		  for(Node<Value> o: predecessorsOfO){
+			  successorsOfP.addAll(o.successors); // S(P)
+		  }
+		  //System.out.println("predecessorsOfO:"+predecessorsOfO);
+		  //System.out.println("successorsOfP:"+successorsOfP);
+		  
+		
+		  successorsOfP.removeAll(overlaps); // S(P) = S(P) - O
+		  successorsOfP.removeAll(successors); // S(P) = S(P) - S
+		  predecessorsOfO.addAll(successorsOfP); // P= P U S(P)
+		  //System.out.println("predecessorsOfO:"+predecessorsOfO);
+		  //System.out.println("successorsOfP:"+successorsOfP);
+		  
+		  
+		  for(Node<Value> o: predecessorsOfO){
+			  if (o.predecessors!=null)
+				  predecessorsOfP.addAll(o.predecessors); // P(P)  //problem
+		  }
+		  predecessorsOfO.removeAll(predecessorsOfP); // P = P - PP
+		  //System.out.println("predecessorsOfP:"+predecessorsOfP);
+		  //System.out.println("predecessorsOfO:"+predecessorsOfO);
+
+		  for(Node<Value> o: predecessorsOfO){
+			  if(o.successors != null){
+				  o.successors.removeAll(successors);
+				  o.successors.add(node);
+			  }
+		  }
+		  
+		  for(Node<Value> o: successors){
+			  o.predecessors.removeAll(predecessorsOfO);
+			  o.predecessors.add(node);
+		  }
+		  
+	  }
+	  else{ // if there is no overlapping events
+		  
+		  for(Node<Value> o: successors){
+			  predecessorsOfO.addAll(o.predecessors);
+		  }
+		  
+		  for(Node<Value> o: predecessorsOfO){
+			  if(o.successors != null){
+				  o.successors.removeAll(successors);
+				  o.successors.add(node);
+			  }
+		  }
+		  
+		  for(Node<Value> o: successors){
+			  o.predecessors.removeAll(predecessorsOfO);
+			  o.predecessors.add(node);
+		  }
+		  
+	  }
+	  node.successors=successors;
+	  node.predecessors=predecessorsOfO;
+	  /*
+	  System.out.println("successors:"+successors);
+	  System.out.println("predecessorsOfO:"+predecessorsOfO);
+	  for(Node<Value> o: successors){
+		  System.out.println("P(S): "+"S:"+o+"P:"+o.predecessors);
+	  }
+	  */
+	  intervalTree.put(node);
+      
+  }
+
+  
+  
+  public void constructGraph2(ArrayList<Node<Value>> nodes) {
+	  long startTime = System.currentTimeMillis();
+	  long nanoStartTime = System.nanoTime();
+
+	  for(Node<Value> node: nodes){
+		  add2(node);
+	  }
+
+	  long stopTime = System.currentTimeMillis();
+	  long nanoStopTime = System.nanoTime();
+      long elapsedTime = stopTime - startTime;
+      long nanoElapsedTime = nanoStopTime - nanoStartTime;
+      System.out.println("\nDAG Construction Time: " + elapsedTime +" ms");
+      System.out.println("DAG Construction Time: " + nanoElapsedTime +" ns");
+	  
+  }
   
 	@SuppressWarnings("unchecked")
-	public void BaseLine(ArrayList<Node<Value>> nodes, boolean p) {
+	public void BaseLine(ArrayList<Node<Value>> nodes, PrintWriter out) {
 		System.out.println();
 		System.out.println("----------------------------------------");
 		long startTime = System.currentTimeMillis();
@@ -274,10 +408,11 @@ public class EventProcessor<Value> {
 			//System.out.println("results size : " + results.size());
 				
 		}
-		if(p){
+		if(out!=null){
 			long i=0;
 			for(TreeSet<Node<Value>> path : results){
-				System.out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
+				//System.out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
+				out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
 			}
 		}
 		System.out.println("Total # of Longest Sequences: " + results.size());
