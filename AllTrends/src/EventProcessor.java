@@ -49,13 +49,17 @@ public class EventProcessor<Value> {
   
   public EventProcessor(){ 
 
-	  this.sourceNode = new Node<Value>(new Interval1D(Integer.MIN_VALUE, Integer.MIN_VALUE), null);
-	  this.targetNode = new Node<Value>(new Interval1D(Integer.MAX_VALUE, Integer.MAX_VALUE), null);
+	  this.sourceNode = new Node<Value>(null,Integer.MIN_VALUE, Integer.MIN_VALUE);
+	  this.targetNode = new Node<Value>(null,Integer.MAX_VALUE, Integer.MAX_VALUE);
+	  //sourceNode.endTime=Integer.MIN_VALUE;
+	  //targetNode.endTime=Integer.MAX_VALUE;
+	  //sourceNode.value=Integer.MIN_VALUE;
+	  //targetNode.value=Integer.MAX_VALUE;
 	  sourceNode.connectTo(targetNode);
 	  intervalTree = new IntervalST<Value>();
 	  graph=new GraphTraversals<Value>(sourceNode,targetNode);
-	  intervalTree.put(sourceNode);
-	  intervalTree.put(targetNode);
+	  //intervalTree.put(sourceNode);
+	  //intervalTree.put(targetNode);
 
   }
 
@@ -206,119 +210,45 @@ public class EventProcessor<Value> {
   }
 
   public void add2(Node<Value> node) {
-	  if (contains(node)) { System.out.print(" [duplicate] "); return;  }
-	  HashSet<Node<Value>> overlaps = new HashSet<Node<Value>>();
 	  HashSet<Node<Value>> successors = new HashSet<Node<Value>>();
 	  HashSet<Node<Value>> predecessors = new HashSet<Node<Value>>();
-	  HashSet<Node<Value>> predecessorsOfO = new HashSet<Node<Value>>();
-	  HashSet<Node<Value>> successorsOfO = new HashSet<Node<Value>>();
-	  HashSet<Node<Value>> predecessorsOfS = new HashSet<Node<Value>>();
-	  HashSet<Node<Value>> successorsOfP = new HashSet<Node<Value>>();
-	  HashSet<Node<Value>> predecessorsOfP = new HashSet<Node<Value>>();
-	  HashSet<Node<Value>> successorsOfS = new HashSet<Node<Value>>();
 	  
+	  // assign targetNode as successor
+	  successors.add(targetNode);
+	  node.successors=successors;
+
 	  // find predecessors
+	  predecessors=graph.findAllPredecessors(node);
 	  
-	  
+
 	  // update predecessors' successor
+	  for(Node<Value> o: predecessors){
+		  if (o.successors!=null){
+			  o.successors.removeAll(successors);
+			  o.successors.add(node);
+			  
+		  }
+	  }
+	  
+	  // update successors' predecessor
+	  for(Node<Value> o: successors){
+		  if (o.predecessors!=null){
+			  o.predecessors.removeAll(predecessors);
+			  o.predecessors.add(node);
+			  
+		  }
+	  }
 	  
 	  // assign predecessor
+	  node.predecessors=predecessors;
+	  //System.out.println(node + " predecessors : "+node.predecessors);
 	  
-	  // assign targetnode as successor
-	  
-	  overlaps = intervalTree.searchAll(node.interval); // O
-	  //System.out.println("O1:"+overlaps);
-
-
-	  Node<Value> next=intervalTree.searchSuccessor(new Interval1D(node.interval.high+1,node.interval.high+1));
-	  //System.out.println("NEXT:"+next);
-	  successors=intervalTree.searchAll(next.interval);
-	  successors.removeAll(overlaps);
-	  
-	  for(Node<Value> o: successors){
-		  if (o.successors!=null)
-			  successorsOfS.addAll(o.successors); // S(S)  
-	  }
-
-	  successors.removeAll(successorsOfS);
-
-	  //System.out.println("S1:"+successors);
-	  
-
-	  if (!overlaps.isEmpty()){
-		  for(Node<Value> o: overlaps){
-			  predecessorsOfO.addAll(o.predecessors); // P
-		  }
-		  predecessorsOfO.removeAll(overlaps); // P= P-O
-		  
-		  for(Node<Value> o: predecessorsOfO){
-			  successorsOfP.addAll(o.successors); // S(P)
-		  }
-		  //System.out.println("predecessorsOfO:"+predecessorsOfO);
-		  //System.out.println("successorsOfP:"+successorsOfP);
-		  
-		
-		  successorsOfP.removeAll(overlaps); // S(P) = S(P) - O
-		  successorsOfP.removeAll(successors); // S(P) = S(P) - S
-		  predecessorsOfO.addAll(successorsOfP); // P= P U S(P)
-		  //System.out.println("predecessorsOfO:"+predecessorsOfO);
-		  //System.out.println("successorsOfP:"+successorsOfP);
-		  
-		  
-		  for(Node<Value> o: predecessorsOfO){
-			  if (o.predecessors!=null)
-				  predecessorsOfP.addAll(o.predecessors); // P(P)  //problem
-		  }
-		  predecessorsOfO.removeAll(predecessorsOfP); // P = P - PP
-		  //System.out.println("predecessorsOfP:"+predecessorsOfP);
-		  //System.out.println("predecessorsOfO:"+predecessorsOfO);
-
-		  for(Node<Value> o: predecessorsOfO){
-			  if(o.successors != null){
-				  o.successors.removeAll(successors);
-				  o.successors.add(node);
-			  }
-		  }
-		  
-		  for(Node<Value> o: successors){
-			  o.predecessors.removeAll(predecessorsOfO);
-			  o.predecessors.add(node);
-		  }
-		  
-	  }
-	  else{ // if there is no overlapping events
-		  
-		  for(Node<Value> o: successors){
-			  predecessorsOfO.addAll(o.predecessors);
-		  }
-		  
-		  for(Node<Value> o: predecessorsOfO){
-			  if(o.successors != null){
-				  o.successors.removeAll(successors);
-				  o.successors.add(node);
-			  }
-		  }
-		  
-		  for(Node<Value> o: successors){
-			  o.predecessors.removeAll(predecessorsOfO);
-			  o.predecessors.add(node);
-		  }
-		  
-	  }
-	  node.successors=successors;
-	  node.predecessors=predecessorsOfO;
-	  /*
-	  System.out.println("successors:"+successors);
-	  System.out.println("predecessorsOfO:"+predecessorsOfO);
-	  for(Node<Value> o: successors){
-		  System.out.println("P(S): "+"S:"+o+"P:"+o.predecessors);
-	  }
-	  */
-	  intervalTree.put(node);
       
   }
 
   
+  // construct graph based on predicate
+  // for simplicity only increasing order of value attribute is considered
   
   public void constructGraph2(ArrayList<Node<Value>> nodes) {
 	  long startTime = System.currentTimeMillis();
@@ -377,7 +307,6 @@ public class EventProcessor<Value> {
 							else
 								newSeq = new TreeSet<Node<Value>>();
 							
-							//prefixes.add((TreeSet<Node<Value>>)prefix.clone());
 							newSeq.add(node);
 							prefixes.add(newSeq);
 							
@@ -385,17 +314,18 @@ public class EventProcessor<Value> {
 					}
 				}
 				//System.out.println("prefixes-size : " + prefixes.size());
-				if(!isAdded && prefixes.isEmpty()){
-					TreeSet<Node<Value>> newSeq = new TreeSet<Node<Value>>();
-					newSeq.add(node);
-					//System.out.println("newSeq : "+ newSeq);
-					results.add(newSeq);
+				if(prefixes.isEmpty()){
+					if(!isAdded){
+						TreeSet<Node<Value>> newSeq = new TreeSet<Node<Value>>();
+						newSeq.add(node);
+						//System.out.println("newSeq : "+ newSeq);
+						results.add(newSeq);
+					}
 					
 				}
 				else{
 					for(TreeSet<Node<Value>> prefix : prefixes){
 						//System.out.println("before prefix : " + prefix);
-						// remove duplicates
 						
 						//prefix.add(node);
 						//System.out.println("after prefix : " + prefix);
@@ -462,14 +392,14 @@ public class EventProcessor<Value> {
 
 	}
 
-	public void FullMem(boolean p) {
+	public void FullMem(PrintWriter out) {
 		  System.out.println();
 	      System.out.println("----------------------------------------");
 		  long startTime = System.currentTimeMillis();
 		  long nanoStartTime = System.nanoTime();
-	      if(p){
+	      if(out!=null){
 	    	  System.out.println("\n\nDFS (Memoization) Sequences: ");
-	    	  graph.printPaths();
+	    	  graph.printPaths(out);
 	      }
 	    	  
 	      else
@@ -484,14 +414,14 @@ public class EventProcessor<Value> {
 		
 	}
 
-	public void NoMem(boolean p) {
+	public void NoMem(PrintWriter out) {
 	      System.out.println();
 	      System.out.println("----------------------------------------");
 		  long startTime = System.currentTimeMillis();
 		  long nanoStartTime = System.nanoTime();
-	      if(p){
+	      if(out!=null){
 	    	  System.out.println("\n\nDFS (No Memoization) Sequences: ");
-	    	  graph.printPathsNoDyn();
+	    	  graph.printPathsNoDyn(out);
 	      }
 	      else
 	    	  graph.printPathCountNoDyn();
@@ -505,6 +435,12 @@ public class EventProcessor<Value> {
 		
 	}
 	
+	public void Fusion(int pm, int ps, PrintWriter out) {
+		// TODO Auto-generated method stub
+		System.out.println("under construction...");
+		
+	}
+
 
   // to remove all events prior to the given time
   public Integer purge(int time){
@@ -537,12 +473,12 @@ public class EventProcessor<Value> {
 
   
   
-  void printPaths() {
-	  graph.printPaths();
+  void printPaths(PrintWriter out) {
+	  graph.printPaths(out);
   }
 
-  void printPathsNoDyn() {
-	  graph.printPathsNoDyn();
+  void printPathsNoDyn(PrintWriter out) {
+	  graph.printPathsNoDyn(out);
   }
 
   ArrayList<LinkedList<Node<Value>>> getPaths() {
@@ -760,6 +696,7 @@ public class EventProcessor<Value> {
 		System.out.println("\nTotal Estimated Cost : " + estimatedCostFromParts);
 	}
 
+
 	public static void testEventProcessor1() {
 		  
 		  long startTime = System.currentTimeMillis();
@@ -849,7 +786,7 @@ public class EventProcessor<Value> {
 
 	      // without memorization
 	      startTime = System.currentTimeMillis();
-	      ep.printPathsNoDyn();
+	      ep.printPathsNoDyn(null);
 	      //ep.graph.printPathCountNoDyn();
 	      
 	      stopTime = System.currentTimeMillis();
@@ -858,7 +795,7 @@ public class EventProcessor<Value> {
 	  
 	      // with memorization
 	      startTime = System.currentTimeMillis();
-	      ep.printPaths();
+	      ep.printPaths(null);
 	      //ep.graph.printPathCount();
 	      
 	      stopTime = System.currentTimeMillis();
@@ -980,7 +917,7 @@ public class EventProcessor<Value> {
 
 	      // without memorization
 	      startTime = System.currentTimeMillis();
-	      ep.printPathsNoDyn();
+	      ep.printPathsNoDyn(null);
 	      stopTime = System.currentTimeMillis();
 	      elapsedTime = stopTime - startTime;
 	      System.out.println("DFS (No Memoization) Time: " + elapsedTime);

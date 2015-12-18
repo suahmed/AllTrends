@@ -1,4 +1,5 @@
 
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,19 +40,19 @@ public class GraphTraversals<Value> {
   }
 
   
-  void printPaths() {
+  void printPaths(PrintWriter out) {
 
 	  visited = new HashSet<Node<Value>>();
 	  paths = new HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>>();
 	  graphDFSByRecersion();
 	  if(paths.containsKey(sourceNode)){
 		  //System.out.println("Longest Sequences are:");
-		  long i=0;//
-		  for ( LinkedList<Node<Value>> path : paths.get(sourceNode)){
-			//path.addFirst(sourceNode);
-			  //path.removeLast(); // last change
-			  //System.out.println("" + path);
-			  System.out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
+		  if(out!=null){
+			  long i=0;//
+			  for ( LinkedList<Node<Value>> path : paths.get(sourceNode)){
+				  //System.out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
+				  out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
+			  }
 		  }
 		  System.out.println("Total # of Longest Sequences: " + paths.get(sourceNode).size());
 	  }
@@ -79,7 +80,43 @@ public class GraphTraversals<Value> {
 	  return null;
   }
 
-  public void graphDFSByRecersion(){
+  
+  public HashSet<Node<Value>> findAllPredecessors(Node<Value> node) {
+	  visited = new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> predecessors = new HashSet<Node<Value>>();
+	  findAllPredecessors(targetNode,node,predecessors);
+	  
+	return predecessors;
+  }
+
+  private void findAllPredecessors(Node<Value> currentNode, Node<Value> node, HashSet<Node<Value>> predecessors) {
+	  //System.out.println("node: " + node + " currentNode: "+currentNode);
+	  if (null == currentNode) {
+	    	return; // back track
+	    }
+	    visited.add(currentNode);
+	    //check if we reached out target node
+	    if(node.isCompatible(currentNode)){
+	    	//System.out.println("isCompatible: " + currentNode);
+	    	predecessors.add(currentNode);
+	    	if(currentNode.predecessors!=null)
+	    		visited.addAll(currentNode.predecessors);
+	    	return;
+	    }
+	    if (currentNode.equals(sourceNode)) {
+		      return; // we have found our target node V.
+	    }
+	    //recursively visit all of unvisited successors
+	    for (Node<Value> pNode : currentNode.predecessors) {
+	        //if (!successor.visited) {
+	        if (!visited.contains(pNode)) {
+	        	findAllPredecessors(pNode,node,predecessors);
+	        }
+	    }
+  }
+
+
+public void graphDFSByRecersion(){
 	  graphDFSByRecersion(sourceNode);
   }
 
@@ -134,7 +171,7 @@ public class GraphTraversals<Value> {
 	  paths = new HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>>();
 	  pathSoFar =  new LinkedList<Node<Value>>();
 	  pathCount = 0;
-	  graphDFSByRecersionNoDyn(false);
+	  graphDFSByRecersionNoDyn(null);
 	  /*
 	  if(paths.containsKey(sourceNode)){
 		  System.out.println("Total # of Longest Sequences: " + paths.get(sourceNode).size());
@@ -150,13 +187,18 @@ public class GraphTraversals<Value> {
   }
 
   
-  void printPathsNoDyn() {
+  void printPathsNoDyn(PrintWriter out) {
 	// TODO Auto-generated method stub
 	  visited = new HashSet<Node<Value>>();
 	  paths = new HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>>();
 	  pathSoFar =  new LinkedList<Node<Value>>();
 	  pathCount = 0;
-	  graphDFSByRecersionNoDyn(true);
+	  if(out!=null){
+		  graphDFSByRecersionNoDyn(out);
+	  }
+	  else{
+		  graphDFSByRecersionNoDyn(null);
+	  }
 	  /*
 	  if(paths.containsKey(sourceNode)){
 		  System.out.println("Total # of Longest Sequences: " + paths.get(sourceNode).size());
@@ -201,15 +243,15 @@ public class GraphTraversals<Value> {
   }
   */
 
-  public void graphDFSByRecersionNoDyn(boolean printPaths){
+  public void graphDFSByRecersionNoDyn(PrintWriter out){
 	ArrayList<LinkedList<Node<Value>>> curPaths= new ArrayList<LinkedList<Node<Value>>>();
 	paths.put(sourceNode, curPaths);
     for (Node<Value> successor : sourceNode.successors) {
-        	graphDFSByRecersionNoDyn(successor, printPaths);
+        	graphDFSByRecersionNoDyn(successor, out);
     }
   }
 
-  public void graphDFSByRecersionNoDyn(Node<Value> currentNode, boolean printPaths ) {
+  public void graphDFSByRecersionNoDyn(Node<Value> currentNode, PrintWriter out ) {
     if (null == currentNode) {
       return; // back track
     }
@@ -217,14 +259,16 @@ public class GraphTraversals<Value> {
     	//ArrayList<LinkedList<Node<Value>>> curPaths=paths.get(sourceNode);
 		//curPaths.add(new LinkedList<Node<Value>>(pathSoFar));
 		pathCount++;
-		if (printPaths)
-			System.out.println("( "+pathCount+" : "+pathSoFar.size() +" ) : " + pathSoFar);
+		if (out!=null){
+			//System.out.println("( "+pathCount+" : "+pathSoFar.size() +" ) : " + pathSoFar);
+			out.println("( "+pathCount+" : "+pathSoFar.size() +" ) : " + pathSoFar);
+		}
     }
     else{
     //recursively visit all of unvisited successors
     	pathSoFar.addLast(currentNode);
 	    for (Node<Value> successor : currentNode.successors) {
-        	graphDFSByRecersionNoDyn(successor, printPaths);
+        	graphDFSByRecersionNoDyn(successor, out);
 	    }
 	    // remove last for back tracking
     	pathSoFar.removeLast();
@@ -285,4 +329,6 @@ public class GraphTraversals<Value> {
 	    //Node<String> targetNode = new Node<String>("T");
  
   }
+
+
 } 

@@ -14,75 +14,97 @@ public class Main {
 	  /**
 	   * 
 	   * @param args
-	   * -p indicates whether to print the sequences
+	   * -ps partition size: pm=1,ps=># of events; pm=2,ps=> interval
+	   * -pm partition method: 1 => by # of events, 2 => by interval
 	   * -i input filename
 	   * -o output filename
-	   * -a1	: use CES fusion, this is the default algorithm
-	   * -a2	: use CES non-dymanic
-	   * -a3	: use CES dynamic
+	   * -a NUM	: algorithm to execute. 4=> baseline, 3=> dDFS, 2=> nDFS, 1=> Fusion
 	   */
 	  
 	  
-	  public static void main(String[] args) {
+	public static void main(String[] args) {
 		  
-			String inputfile ="inputfile.txt";// args[0];
-			String outputfile ="outputfile.txt";// args[1];
-			String line = "";
-			ArrayList<Node<String>> nodes = new ArrayList<Node<String>>();
-		  boolean print=true;
-		  boolean alg1=true; // ces fusion
-		  boolean alg2=true; // ces non-dynamic
-		  boolean alg3=true; // ces dynamic
-		  boolean alg4=true; // ces dynamic
+		String path="D:\\git\\AllTrends\\src\\input_output\\";
+		String inputfile ="inputfile.txt";
+		String outputfile ="outputfile.txt";
+		String line = "";
+		ArrayList<Node<String>> nodes = new ArrayList<Node<String>>();
+		int ps=10; // partition size: pm=1,ps=># of events; pm=2,ps=> interval
+		int pm=1; // partition method: 1 => by # of events, 2 => by interval
+		int alg=2; // 4=> baseline, 3=> dDFS, 2=> nDFS, 1=> Fusion
 		  
 		  for (int i=0; i< args.length; i++){
-			  if (args[i].equals("-p")) print=true;
-			  if (args[i].equals("-a1")) alg1=true;
-			  if (args[i].equals("-a2")) alg2=true;
-			  if (args[i].equals("-a3")) alg3=true;
-			  if (args[i].equals("-a4")) alg4=true;
+			  if (args[i].equals("-pm")) pm=Integer.parseInt(args[++i]);
+			  if (args[i].equals("-ps")) ps=Integer.parseInt(args[++i]);
+			  if (args[i].equals("-a")) alg=Integer.parseInt(args[++i]);
 			  if (args[i].equals("-i")) inputfile=args[++i];
 			  if (args[i].equals("-o")) outputfile=args[++i];
 		  }
 
 			try {		
 				// input file 
-				File input_file = new File(inputfile);
+				File input_file = new File(path+inputfile);
 				Scanner input = new Scanner(input_file);  			
 						
 				// output file
-				PrintWriter out = new PrintWriter(outputfile);
+				PrintWriter out = new PrintWriter(path+outputfile);
 	            
 	            long i=0;
 				while (input.hasNextLine()) {
 					line = input.nextLine();
-			          Node<String> node = new Node<String>(line);
+					Node<String> node = new Node<String>(line);
 
-			          System.out.print(node + " ");
-			          if (i%5==0) System.out.println();
+					System.out.print(node + " ");
+					if (i%5==0) System.out.println();
 					nodes.add(node);
-
 				}
 				EventProcessor<String> ep=new EventProcessor<String>();
 
 				// call algorithm 
-				ep.BaseLine(nodes, out);
+				
+				// BaseLine
+				if(alg==4)
+				{
+					ep.BaseLine(nodes, out);
+				}
+			      
+				// constructGraph for dDFS and nDFS
+				if(alg==1 || alg==2 || alg==3){
+					ep.constructGraph2(nodes);
+				}
+				
+				// dDFS
+				if(alg==3){
+					ep.FullMem(out);
+				}
+				
+				// nDFS
+				if(alg==2){
+					ep.NoMem(out);
+				}
+				
+				// hybrid
+				if(alg==1)
+				{
+					ep.Fusion(pm,ps,out);
+				}
+				// 
 	                       
-	            /*** Close the files ***/
+	            // close the files
 	       		input.close();
 	       		out.close();        		
 	        
 			} catch (IOException e) { System.err.println(e); }		  
 			  
 
-		  /*//old method
-		  RandomGenerateAndTestEventProcessor(n, print, maxOverlaps, 
-				  alg1, alg2, alg3, 
-				  randomlength, memoization,eventLength,windowLength);
-		  */
 	  }
 
 	
+	  /*//old method call
+	  RandomGenerateAndTestEventProcessor(n, print, maxOverlaps, 
+			  alg1, alg2, alg3, 
+			  randomlength, memoization,eventLength,windowLength);
+	  */
 	  /**
 	   * randomly create the events and apply sequence construction technique based on the input
 	   * @param n : number of events
@@ -163,18 +185,12 @@ public class Main {
 	      
 	      if(alg2==true){
 	      // without memoization
-	    	  ep.NoMem(p);
+	    	  //ep.NoMem(p);
 	      }  
 	      
 	      // with memoization
 	      if(alg3==true){
-	    	  ep.FullMem(p);
-	      }
-	      
-	      // base line
-	      //if(alg4==true)
-	      {
-	    	 // ep.BaseLine(nodes, p);
+	    	  //ep.FullMem(p);
 	      }
 	      
 	      

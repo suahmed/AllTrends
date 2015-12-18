@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Random;
 
@@ -19,8 +21,9 @@ public class Main {
 	* -o filename : output filename to save the generated events
 	*/
 	public static void main(String[] args) {
-		int n=50;
+		int n=15;
 		int branchFactor = 3; // random
+		String path="D:\\git\\AllTrends\\src\\input_output\\";
 		String filename = new String("inputfile.txt");
 		  		  
 		for (int i=0; i< args.length; i++){
@@ -29,7 +32,7 @@ public class Main {
 			if (args[i].equals("-o")) filename=args[++i];
 		}
 
-		GenerateEventsAndSave(n, branchFactor, filename);
+		GenerateEventsAndSave(n, branchFactor, path+filename);
 	}
 	  
 	/**

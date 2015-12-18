@@ -30,7 +30,7 @@ class Node<Value> implements Comparable<Node<Value>>{
         this.value    = value;
         this.endTime  = endTime;
         this.N        = 1;
-        this.max      = interval.high;
+        //this.max      = interval.high;
     }
     
     @SuppressWarnings("unchecked")
@@ -70,7 +70,7 @@ class Node<Value> implements Comparable<Node<Value>>{
 
     public String toString() {
     	if (interval != null)
-    		return "<" + data + ": " + interval.low + "-" + interval.high +  ">";
+    		return "<" + data + ":" + interval.low + "-" + interval.high +  ">";
     	else if (value != null && endTime  != null ){
     		return "<" + data + ":" + value + ":" + endTime + ">";
     	}
