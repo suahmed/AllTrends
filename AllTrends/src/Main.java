@@ -28,7 +28,7 @@ public class Main {
 			String outputfile ="outputfile.txt";// args[1];
 			String line = "";
 			ArrayList<Node<String>> nodes = new ArrayList<Node<String>>();
-		  boolean print=false;
+		  boolean print=true;
 		  boolean alg1=true; // ces fusion
 		  boolean alg2=true; // ces non-dynamic
 		  boolean alg3=true; // ces dynamic
