@@ -16,7 +16,7 @@ public class GraphTraversals<Value> {
   //public static final Node<Value> targetTreeNode = new Node<Value>("D");
  
   HashSet<Node<Value>> visited;
-  HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>> paths;
+  HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>> paths=null;
   LinkedList<Node<Value>> pathSoFar;
   long pathCount;
   
@@ -26,58 +26,63 @@ public class GraphTraversals<Value> {
   }
 
 
-  void printPathCount() {
-
+  void createPaths(){
 	  visited = new HashSet<Node<Value>>();
 	  paths = new HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>>();
 	  graphDFSByRecersion();
-	  if(paths.containsKey(sourceNode)){
-		  System.out.println("Total # of Longest Sequences: " + paths.get(sourceNode).size());
-	  }
-	  else
-		  System.out.println("No path from "+ sourceNode + " To " + targetNode);
-	
   }
 
   
   void printPaths(PrintWriter out) {
 
-	  visited = new HashSet<Node<Value>>();
-	  paths = new HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>>();
-	  graphDFSByRecersion();
-	  if(paths.containsKey(sourceNode)){
-		  //System.out.println("Longest Sequences are:");
-		  if(out!=null){
-			  long i=0;//
-			  for ( LinkedList<Node<Value>> path : paths.get(sourceNode)){
-				  //System.out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
-				  out.println("( "+ (i++) +" : "+path.size() +" ) : " + path);
-			  }
+	  ArrayList<LinkedList<Node<Value>>> pathList= getPaths();
+	  //System.out.println("Longest Sequences are:");
+	  if(out!=null){
+		  long i=0;//
+		  
+		  for ( LinkedList<Node<Value>> path : pathList){
+			  out.println("( "+ (++i) +" : "+path.size() +" ) : " + path);
 		  }
+	  }
+	  System.out.println("Total # of Longest Sequences: " + pathList.size());
+  }
+
+  void printPathCount() {
+
+	  createPaths();
+	  if(paths.containsKey(sourceNode)){
 		  System.out.println("Total # of Longest Sequences: " + paths.get(sourceNode).size());
 	  }
 	  else
 		  System.out.println("No path from "+ sourceNode + " To " + targetNode);
 	
   }
-
+  
   ArrayList<LinkedList<Node<Value>>> getPaths() {
 
-	  visited = new HashSet<Node<Value>>();
-	  paths = new HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>>();
-	  graphDFSByRecersion();
-	  if(paths.containsKey(sourceNode)){
-		  
-	      	//for ( LinkedList<Node<Value>> path : paths.get(sourceNode))
-	      	{
-	      		//path.addFirst(sourceNode);
-	      		//path.removeLast(); // last change
-	      		//System.out.println("" + path);
-	    	}
-	      	return paths.get(sourceNode);
+	  createPaths();
+	  ArrayList<LinkedList<Node<Value>>> pathList= new ArrayList<LinkedList<Node<Value>>>();
+	  for (Node<Value> successor : sourceNode.successors) {
+		pathList.addAll(paths.get(successor));
 	  }
+	  return pathList;
+  }
+
+  ArrayList<LinkedList<Node<Value>>> getPaths(Node<Value> node) {
+
+	  if(paths == null || paths.isEmpty()){
+		  //System.out.println("node: " + node + " Creating Paths");
+		  createPaths();
+	  }
+	  ArrayList<LinkedList<Node<Value>>> pathList= new ArrayList<LinkedList<Node<Value>>>();
 	  
-	  return null;
+	  if(paths.containsKey(node)){
+		  pathList=paths.get(node);
+		  //System.out.println("node: " + node + " Paths: " + pathList);
+		  return pathList;
+	  }
+	  else
+		  return null;
   }
 
   
@@ -135,31 +140,38 @@ public void graphDFSByRecersion(){
 	        if (!visited.contains(successor)) {
 	        	graphDFSByRecersion(successor);
 	        }
-	        if(paths.containsKey(successor)){
-	        	if (!paths.containsKey(currentNode)){
-	        		ArrayList<LinkedList<Node<Value>>> curPaths= new ArrayList<LinkedList<Node<Value>>>();
-	        		paths.put(currentNode, curPaths);
-	        	}
-	        	ArrayList<LinkedList<Node<Value>>> curPaths=paths.get(currentNode);
-	        	for ( LinkedList<Node<Value>> path : paths.get(successor)){
-	        		
-	        		LinkedList<Node<Value>> newpath = new LinkedList<Node<Value>>(path);
-	        		newpath.addFirst(successor);
-	        		curPaths.add(newpath);
-	        		
-	        	}
-	        }
-	        else{
-	        	// add only the successor
-	        	if (!paths.containsKey(currentNode)){
-	        		ArrayList<LinkedList<Node<Value>>> curPaths= new ArrayList<LinkedList<Node<Value>>>();
-	        		paths.put(currentNode, curPaths);
-	        	}
-	        	ArrayList<LinkedList<Node<Value>>> curPaths=paths.get(currentNode);
-	       		LinkedList<Node<Value>> newpath = new LinkedList<Node<Value>>();
-	       		// next line remarked for not including targetNode
-	        	//newpath.addFirst(successor); // can be removed and wont need removeLast
-	        	curPaths.add(newpath);
+	        
+	        if(currentNode!=sourceNode){
+		        if(paths.containsKey(successor)){
+		        	if (!paths.containsKey(currentNode)){
+		        		ArrayList<LinkedList<Node<Value>>> curPaths= new ArrayList<LinkedList<Node<Value>>>();
+		        		paths.put(currentNode, curPaths);
+		        	}
+		        	ArrayList<LinkedList<Node<Value>>> curPaths=paths.get(currentNode);
+		        	for ( LinkedList<Node<Value>> path : paths.get(successor)){
+		        		
+		        		LinkedList<Node<Value>> newpath = new LinkedList<Node<Value>>(path);
+		        		//newpath.addFirst(successor);
+		        		newpath.addFirst(currentNode);
+		        		
+		        		curPaths.add(newpath);
+		        		
+		        	}
+		        }
+		        else{
+		        	// add only the successor
+		        	if (!paths.containsKey(currentNode)){
+		        		ArrayList<LinkedList<Node<Value>>> curPaths= new ArrayList<LinkedList<Node<Value>>>();
+		        		paths.put(currentNode, curPaths);
+		        	}
+		        	ArrayList<LinkedList<Node<Value>>> curPaths=paths.get(currentNode);
+		       		LinkedList<Node<Value>> newpath = new LinkedList<Node<Value>>();
+		       		// next line remarked for not including targetNode
+		        	//newpath.addFirst(successor); // can be removed and wont need removeLast
+		        	newpath.addFirst(currentNode); // check
+		        	curPaths.add(newpath);
+		        }
+	        	
 	        }
 	        
 	    }
@@ -221,27 +233,6 @@ public void graphDFSByRecersion(){
 	
   }
 
-  /*
-  ArrayList<LinkedList<Node<Value>>> getPathsNoDyn() {
-	// TODO Auto-generated method stub
-	  visited = new HashSet<Node<Value>>();
-	  paths = new HashMap<Node<Value>,ArrayList<LinkedList<Node<Value>>>>();
-	  pathSoFar =  new LinkedList<Node<Value>>();
-	  pathCount = 0;
-	  graphDFSByRecersionNoDyn(true);
-	  if(paths.containsKey(sourceNode)){
-		  
-	      	//for ( LinkedList<Node<Value>> path : paths.get(sourceNode)){
-	      		//path.addFirst(sourceNode);
-	      		//path.removeLast();
-	      		//System.out.println("" + path);
-	    	//}
-	      	return paths.get(sourceNode);
-	  }
-	  
-	  return null;
-  }
-  */
 
   public void graphDFSByRecersionNoDyn(PrintWriter out){
 	ArrayList<LinkedList<Node<Value>>> curPaths= new ArrayList<LinkedList<Node<Value>>>();

@@ -14,8 +14,17 @@ class Node<Value> implements Comparable<Node<Value>>{
     Integer endTime;
     Integer value;
     
+    // successors and predecessors for graph
     HashSet<Node<Value>> successors = null;
     HashSet<Node<Value>> predecessors = null;
+    
+    // backup successors and predecessors
+    // when creating partitions
+    // will be needed when combining sequences from partitions
+    HashSet<Node<Value>> successors2 = null;
+    HashSet<Node<Value>> predecessors2 = null;
+    int partIndex=-1;                  // index of the partition
+
     boolean visited = false;
 
     Node(Interval1D interval, Value value) {
@@ -95,7 +104,7 @@ class Node<Value> implements Comparable<Node<Value>>{
     /*
 	@Override
 	public int hashCode() {
-		final int prime = 41;
+		final int prime = 31;
 		int result = 1;
 		result = prime * result + N;
 		//result = prime * result + ((eventName == null) ? 0 : eventName.hashCode());
@@ -160,15 +169,15 @@ class Node<Value> implements Comparable<Node<Value>>{
           return false;
         }
 
-      //if (interval != null )
+      if (interval != null )
+
       {
           if (this.interval != other.interval && (this.interval == null || !this.interval.equals(other.interval))) {
               return false;
             }
     	  
       }
-      
-      //if (value != null && endTime  != null )
+      if (value != null && endTime  != null )
       {
           if (this.value != other.value && (this.value == null || !this.value.equals(other.value))) {
               return false;
@@ -178,6 +187,7 @@ class Node<Value> implements Comparable<Node<Value>>{
             }
     	  
       }
+      
       
       return true;
     }
