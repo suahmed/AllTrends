@@ -29,13 +29,14 @@ public class Main {
 		String outputfile ="outputfile.txt";
 		String line = "";
 		ArrayList<Node<String>> nodes = new ArrayList<Node<String>>();
-		int ps=6; // partition size: pm=1,ps=># of events; pm=2,ps=> interval
-		int pm=1; // partition method: 1 => by # of events, 2 => by interval
+		int ps=15; // partition size: pm=1,ps=># of events; pm=2,ps=> interval
+		//int pm=1; // partition method: 1 => by # of events, 2 => by interval
+					// method=2 based partitioning is not yet implemented
 		int alg=1; // 4=> baseline, 3=> dDFS, 2=> nDFS, 1=> Fusion
 		boolean print=false;
 		  
 		  for (int i=0; i< args.length; i++){
-			  if (args[i].equals("-pm")) pm=Integer.parseInt(args[++i]);
+			  //if (args[i].equals("-pm")) pm=Integer.parseInt(args[++i]);
 			  if (args[i].equals("-ps")) ps=Integer.parseInt(args[++i]);
 			  if (args[i].equals("-a")) alg=Integer.parseInt(args[++i]);
 			  if (args[i].equals("-i")) inputfile=args[++i];
@@ -89,7 +90,7 @@ public class Main {
 				// Fusion
 				if(alg==1)
 				{
-					ep.Fusion(nodes,pm,ps,out);
+					ep.Fusion(nodes,ps,out);
 				}
 				// 
 	                       

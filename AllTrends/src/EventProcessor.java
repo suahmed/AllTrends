@@ -22,25 +22,13 @@ public class EventProcessor<Value> {
   GraphTraversals<Value> graph; //=new GraphTraversals<String>(S,T);
   
   ArrayList<EventProcessor<Value>> cutParts;
-  ArrayList<EventProcessor<Value>> finalParts;
-  ArrayList<Node<String>> cutPoints;
-  ArrayList<Node<String>> optimalCutPoints;
-  ArrayList<Integer> realCountOfSeqs;
-  ArrayList<Integer> estimatedCountOfSeqs;
-  ArrayList<Integer> widthOfSeqs;
   ArrayList<ArrayList<LinkedList<Node<Value>>>> pathsOfParts;
-  LinkedList<Node<Value>> pathSoFar; // for generating paths from partitions
   LinkedList<LinkedList<Node<Value>>> curSeq;
   long pathCount;
   long eCost;
   long eSeq;
   long eLen;
 
-  //public static final Node<Value> targetTreeNode = new Node<Value>("D");
- 
-  HashSet<Node<Value>> overlaps;
-  HashSet<Node<Value>> predecessors;
-  HashSet<Node<Value>> successors;
   
   // to store partial and final sequences for each node
   
@@ -60,7 +48,7 @@ public class EventProcessor<Value> {
 	  //sourceNode.value=Integer.MIN_VALUE;
 	  //targetNode.value=Integer.MAX_VALUE;
 	  sourceNode.connectTo(targetNode);
-	  intervalTree = new IntervalST<Value>();
+	  //intervalTree = new IntervalST<Value>();
 	  graph=new GraphTraversals<Value>(sourceNode,targetNode);
 	  //intervalTree.put(sourceNode);
 	  //intervalTree.put(targetNode);
@@ -250,12 +238,12 @@ public class EventProcessor<Value> {
 		
 	}
 
-	public void Fusion(ArrayList<Node<Value>> nodes, int pm, int ps, PrintWriter out) {
+	public void Fusion2(ArrayList<Node<Value>> nodes, int ps, PrintWriter out) {
 	    System.out.println();
 	    //System.out.println("----------------------------------------");
 	    long startTime = System.currentTimeMillis();
 	    long nanoStartTime = System.nanoTime();
-	    findCuts2(pm,ps, nodes);
+	    findCuts2(ps, nodes);
 
 	    // call DFS for each of the partition and record # of sequences
 	    applyDfsOnParts2();
@@ -266,6 +254,31 @@ public class EventProcessor<Value> {
 	    // call recursive sequence construction on optimal partitions and record time
 	    // DFS with memoization on parts and generate sequences recursively without memoization
 	    genSequencesFromParts2(out);
+
+	    long stopTime = System.currentTimeMillis();
+	    long nanoStopTime = System.nanoTime();
+	    long elapsedTime = stopTime - startTime;
+	    long nanoElapsedTime = nanoStopTime - nanoStartTime;
+	    System.out.println("Fusion Time: " + elapsedTime +" ms");
+	    System.out.println("Fusion Time: " + nanoElapsedTime +" ns");
+	}
+
+	public void Fusion(ArrayList<Node<Value>> nodes, int ps, PrintWriter out) {
+	    System.out.println();
+	    //System.out.println("----------------------------------------");
+	    long startTime = System.currentTimeMillis();
+	    long nanoStartTime = System.nanoTime();
+	    findCleanCuts(ps, nodes);
+
+	    // call DFS for each of the partition and record # of sequences
+	    applyDfsOnParts();
+	    /*
+		// apply optimal partitioning algorithm
+		searchOptimal();
+	    */
+	    // call recursive sequence construction on optimal partitions and record time
+	    // DFS with memoization on parts and generate sequences recursively without memoization
+	    genSequencesFromParts(out);
 
 	    long stopTime = System.currentTimeMillis();
 	    long nanoStopTime = System.nanoTime();
@@ -309,38 +322,6 @@ public class EventProcessor<Value> {
 		
 	}
 	
-
-
-  // to remove all events prior to the given time
-  public Integer purge(int time){
-	  HashSet<Node<Value>> overlaps = new HashSet<Node<Value>>();
-	  overlaps = intervalTree.searchAll(new Interval1D(Integer.MIN_VALUE,time));
-	  int count=0;
-
-	  successors=intervalTree.searchAll(new Interval1D(time,time));
-
-	  for(Node<Value> e: successors){
-		  e.predecessors.clear();;
-		  e.predecessors.add(sourceNode);
-	  }
-	  sourceNode.successors=successors;
-	  //System.out.println("SUCCESSORS: "+sourceNode.successors);
-	  overlaps.removeAll(successors);
-	  overlaps.remove(sourceNode);
-
-	  for(Node<Value> e: overlaps){
-		  //System.out.println("PURGE1:"+e);
-		  intervalTree.remove(e);
-		  count++;
-		  
-	  }
-
-	  
-	  return count;
-  }
-
-
-  
   
   void printPaths(PrintWriter out) {
 	  graph.printPaths(out);
@@ -360,17 +341,243 @@ public class EventProcessor<Value> {
 
 
   @SuppressWarnings("unchecked")
-  public void findCuts2(int method, int limit, ArrayList<Node<Value>> nodes){
+  public void findCleanCuts(int limit, ArrayList<Node<Value>> nodes){
       System.out.println("----------------------------------------");
 	  long startTime = System.currentTimeMillis();
 	  long nanoStartTime = System.nanoTime();
-	  System.out.println("\nCreate Partitions:"+"Method:" + method + " Limit: " + limit);
+	  System.out.println("\nCreate Partitions:"+ " Size: " + limit);
 	  
 	  HashSet<Node<Value>> firstNodes = null ; // new HashSet<Node<Value>>();
 	  HashSet<Node<Value>> lastNodes = null ; // new HashSet<Node<Value>>();
 	  lastNodeSuccessors=new HashMap<Node<Value>,HashSet<Node<Value>>>();
+
+	  // count number of partitions based on the limit
+	  //int nPartitions= (nodes.size()%limit == 0? nodes.size()/limit : nodes.size()/limit +1);
+	  
+	  // backup original successors and predecessors
+	  sourceNode.successors2=(HashSet<Node<Value>>) sourceNode.successors.clone();
+	  targetNode.predecessors2=(HashSet<Node<Value>>) targetNode.predecessors.clone();
+	  
+	  for (Node<Value> node : nodes){
+		  node.successors2=(HashSet<Node<Value>>) node.successors.clone();
+		  node.predecessors2=(HashSet<Node<Value>>) node.predecessors.clone();
+	  }
+
+	  int i=0;
+	  int j=0;
+	  cutParts = new ArrayList<EventProcessor<Value>>();
+	  while (j<nodes.size()){
+	  //for (i=0 ; i<nPartitions; i++){
+
+		  ArrayList<Node<Value>> partNodes = new ArrayList<Node<Value>>();
+
+		  for( int k=0 ; k<limit && j<nodes.size() ; k++){
+		  //while(j<((i+1)*limit) && j <nodes.size()){
+			  removeFirst(nodes.get(j));
+			  partNodes.add(nodes.get(j));
+			  j++;
+		  }
+		  boolean isCleanCut=false;
+		  do{
+			  //System.out.println("Partition: " + i + " Nodes: "+partNodes);
+			  firstNodes = new HashSet<Node<Value>>();
+			  lastNodes = new HashSet<Node<Value>>();
+	
+			  HashSet<Node<Value>> prevNodes = new HashSet<Node<Value>>();
+			  HashSet<Node<Value>> nextNodes = new HashSet<Node<Value>>();
+			  for (Node<Value> node : partNodes){
+				  prevNodes.addAll(node.predecessors2);
+				  nextNodes.addAll(node.successors2);
+			  }
+			  prevNodes.removeAll(partNodes);
+			  nextNodes.removeAll(partNodes);
+	
+			  for (Node<Value> node : prevNodes){
+				  firstNodes.addAll(node.successors2);
+			  }
+			  firstNodes.retainAll(partNodes);
+	
+			  for (Node<Value> node : nextNodes){
+				  lastNodes.addAll(node.predecessors2);
+			  }
+			  lastNodes.retainAll(partNodes);
+			  
+			  // check all last node's successors to be same to make isCleanCut=true
+			  if(checkCleanCut(lastNodes,partNodes)){
+				  isCleanCut=true;
+			  }
+			  else{
+				  //if(j<nodes.size())
+				  {
+					  removeFirst(nodes.get(j));
+					  partNodes.add(nodes.get(j));
+					  j++;
+				  }
+				  //else{
+				//	  isCleanCut=true;
+				 // }
+			  }
+			  
+		  }while(isCleanCut==false);
+		  //System.out.println("FirstNodes: " + firstNodes);
+		  //System.out.println("LastNodes : " + lastNodes);
+		  
+		  EventProcessor<Value> cutPart = new EventProcessor<Value>();
+		  for (Node<Value> node : partNodes){
+			  //node.successors
+			  cutPart.add2(node);
+		  }
+
+		  //System.out.println("Successor Before Adjust:");
+		  //for (Node<Value> node : partNodes){
+		  //System.out.println("Successor("+node+"): " + node.successors);
+		  //}
+		  cutPart.adjustFirstNodes(firstNodes);
+		  cutPart.adjustLastNodes(lastNodes);
+		  
+		  //System.out.println("Successor(S): " + cutPart.sourceNode.successors);
+		  //System.out.println("Predecess(T): " + cutPart.targetNode.predecessors);
+		  //System.out.println("Successor After Adjust:");
+		  //for (Node<Value> node : partNodes){
+		  //System.out.println("Successor("+node+"): " + node.successors);
+		  //}
+
+		  //for (Node<Value> node : lastNodes){
+			//  HashSet<Node<Value>> lastNodePartitionSuccessors = (HashSet<Node<Value>>) node.successors2.clone();
+			//  lastNodePartitionSuccessors.removeAll(partNodes);
+			//  lastNodeSuccessors.put(node, lastNodePartitionSuccessors);
+			  //System.out.println("Last: "+ node + " Successors:" + lastNodePartitionSuccessors);
+		  //}
+
+		  cutParts.add(i, cutPart);
+		  i++;
+	  }
+	  long stopTime = System.currentTimeMillis();
+	  long nanoStopTime = System.nanoTime();
+      long elapsedTime = stopTime - startTime;
+      long nanoElapsedTime = nanoStopTime - nanoStartTime;
+      System.out.println("\nPartition Time: " + elapsedTime +" ms");
+      System.out.println("Partition Time: " + nanoElapsedTime +" ns");
+  }
+
+  private void removeFirst(Node<Value> node) {
+	  sourceNode.successors.addAll(node.successors);
+	  for (Node<Value> node1 : node.successors){
+		  node1.predecessors.add(sourceNode);
+		  node1.predecessors.remove(node);
+	  }
+	  sourceNode.successors.remove(node);
+  }
+
+@SuppressWarnings("unchecked")
+  private boolean checkCleanCut(HashSet<Node<Value>> lastNodes, ArrayList<Node<Value>> partNodes) {
+
+	  HashSet<Node<Value>> nextNodes = (HashSet<Node<Value>>) sourceNode.successors.clone();
+	  int i=0;
+	  for (Node<Value> node : lastNodes){
+		  /*
+		  if(i==0){
+			  nextNodes = (HashSet<Node<Value>>) node.successors2.clone();
+			  i++;
+		  }
+		  else
+		  */
+		  {
+			  HashSet<Node<Value>> lastNodePartitionSuccessors = (HashSet<Node<Value>>) node.successors2.clone();
+			  lastNodePartitionSuccessors.removeAll(partNodes);
+			  //lastNodePartitionSuccessors.removeAll(nextNodes);
+			  if(lastNodePartitionSuccessors.containsAll(nextNodes) == false){ // || nextNodes.containsAll(lastNodePartitionSuccessors)){
+				  return false;
+			  }
+		  }
+		  //System.out.println("Last: "+ node + " Successors:" + lastNodePartitionSuccessors);
+	  }
+	  return true;
+  }
+
+	public void applyDfsOnParts() {
+		System.out.println("----------------------------------------");
+		long startTime = System.currentTimeMillis();
+		long nanoStartTime = System.nanoTime();
+		System.out.println("Apply DFS on Partitions: ");
+
+		pathsOfParts = new ArrayList<ArrayList<LinkedList<Node<Value>>>>();
+		for(int i=0; i<cutParts.size();i++){
+			pathsOfParts.add(i, cutParts.get(i).getPaths());
+		}
+		
+		long stopTime = System.currentTimeMillis();
+		long nanoStopTime = System.nanoTime();
+		long elapsedTime = stopTime - startTime;
+		long nanoElapsedTime = nanoStopTime - nanoStartTime;
+		System.out.println("\nDFS on Partitions Time: " + elapsedTime +" ms");
+		System.out.println("DFS on Partitions Time: " + nanoElapsedTime +" ns");
+		
+	}
+
+	public void genSequencesFromParts(PrintWriter out) {
+		System.out.println("----------------------------------------");
+		long startTime = System.currentTimeMillis();
+		long nanoStartTime = System.nanoTime();
+		System.out.println("Sequence Generation From Parts: ");
+	  curSeq = new LinkedList<LinkedList<Node<Value>>>();
+	  pathCount=0;
+	  genSequencesFromParts(0,out);
+	  if (pathCount > 0){
+		  System.out.println("\nTotal # of Longest Sequences: " + pathCount);
+		  //System.out.println("Estimated # of Sequences: " + estimateCost());
+	  }
+	  else
+		  System.out.println("No path found!");
+
+	  	long stopTime = System.currentTimeMillis();
+		long nanoStopTime = System.nanoTime();
+		long elapsedTime = stopTime - startTime;
+		long nanoElapsedTime = nanoStopTime - nanoStartTime;
+		System.out.println("\nSequence from Parts Time: " + elapsedTime +" ms");
+		System.out.println("Sequence from Parts Time: " + nanoElapsedTime +" ns");
+	}
+	
+  	private void genSequencesFromParts(int partIndex, PrintWriter out) {
+		int partCount=pathsOfParts.size();
+		if(partIndex < partCount){
+			ArrayList<LinkedList<Node<Value>>> curPaths =pathsOfParts.get(partIndex);
+			for (int i=0; i< curPaths.size();i++){
+				curSeq.addLast(curPaths.get(i));
+				if (partIndex == partCount-1){
+					pathCount++;
+					// can print here
+					if(out!=null){
+						//System.out.println("( "+pathCount+" : " + curSeq);
+						//out.println("( "+pathCount+" : "+ findSize(curSeq) +" ) : " + curSeq);
+						out.println("( "+pathCount+" ) : " + curSeq);
+					}
+				}
+				else
+					genSequencesFromParts(partIndex+1, out);
+
+				curSeq.removeLast();
+			}
+		}
+	}
+		
+  
+  
+  @SuppressWarnings("unchecked")
+  public void findCuts2(int limit, ArrayList<Node<Value>> nodes){
+      System.out.println("----------------------------------------");
+	  long startTime = System.currentTimeMillis();
+	  long nanoStartTime = System.nanoTime();
+	  System.out.println("\nCreate Partitions:"+ " Size: " + limit);
+	  
+	  HashSet<Node<Value>> firstNodes = null ; // new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> lastNodes = null ; // new HashSet<Node<Value>>();
+	  lastNodeSuccessors=new HashMap<Node<Value>,HashSet<Node<Value>>>();
+
+	  // count number of partitions based on the limit
 	  int nPartitions= (nodes.size()%limit == 0? nodes.size()/limit : nodes.size()/limit +1);
 	  
+	  // backup original successors and predecessors
 	  sourceNode.successors2=(HashSet<Node<Value>>) sourceNode.successors.clone();
 	  targetNode.predecessors2=(HashSet<Node<Value>>) targetNode.predecessors.clone();
 	  
@@ -467,13 +674,7 @@ public class EventProcessor<Value> {
 	  }
   }
 
-	public int findOverlapsCount(Node<Value> node) {
-		HashSet<Node<Value>> overlaps = new HashSet<Node<Value>>();
-			overlaps = intervalTree.searchAll(node.interval);
-		return overlaps.size();
-	}
-	
-	private long estimateCost() {
+  private long estimateCost() {
 		HashSet<Node<Value>> allNodes = new HashSet<Node<Value>>();
 		HashSet<Node<Value>> overlaps = new HashSet<Node<Value>>();
 		HashSet<Node<Value>> doneNodes = new HashSet<Node<Value>>();
@@ -544,8 +745,8 @@ public class EventProcessor<Value> {
 		long nanoStopTime = System.nanoTime();
 		long elapsedTime = stopTime - startTime;
 		long nanoElapsedTime = nanoStopTime - nanoStartTime;
-		System.out.println("\nSequence Generation from Parts Time: " + elapsedTime +" ms");
-		System.out.println("Sequence Generation from Parts Time: " + nanoElapsedTime +" ns");
+		System.out.println("\nSequence from Parts Time: " + elapsedTime +" ms");
+		System.out.println("Sequence from Parts Time: " + nanoElapsedTime +" ns");
 	}
 		
 	private void genSequencesFromParts2(Node<Value> lastNode, PrintWriter out) {
@@ -562,8 +763,11 @@ public class EventProcessor<Value> {
 			}
 			else{
 				ArrayList<LinkedList<Node<Value>>> curPaths =paths.get(node);
-				for(LinkedList<Node<Value>> path : curPaths){
+				//for (int i=0; i< curPaths.size();i++){
+				for(LinkedList<Node<Value>> path : paths.get(node)){
+					//curSeq.addLast(curPaths.get(i));
 					curSeq.addLast(path);
+					//genSequencesFromParts2(curPaths.get(i).getLast(),out);
 					genSequencesFromParts2(path.getLast(),out);
 					curSeq.removeLast();
 				}
@@ -578,17 +782,6 @@ public class EventProcessor<Value> {
 		}
 		return count;
 	}
-
-
-	  public static void main(String args[]) {
-
-		  //testEventProcessor1();
-		  //testEventProcessor2();
-
-
-	}
-
-
 
 
 } 

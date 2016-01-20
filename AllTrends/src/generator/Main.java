@@ -21,8 +21,8 @@ public class Main {
 	* -o filename : output filename to save the generated events
 	*/
 	public static void main(String[] args) {
-		int n=60;
-		int branchFactor = 3; // random
+		int n=50;
+		int branchFactor = 7; // random
 		String path="D:\\git\\AllTrends\\src\\input_output\\";
 		String filename = new String("inputfile.txt");
 		  		  
