@@ -559,6 +559,11 @@ public class EventProcessor<Value> {
 	  return memCost;
   }
   
+  /**
+   * construct partitions from given cutpoints
+   * @param pIndices
+   * @return
+   */
   private ArrayList<EventProcessor<Value>> constructGraphFromCuts(ArrayList<Integer> pIndices) {
 	  int i=0;
 	  int j, k;
