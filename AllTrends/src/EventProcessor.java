@@ -24,6 +24,7 @@ public class EventProcessor<Value> {
   ArrayList<EventProcessor<Value>> cutParts;
   ArrayList<ArrayList<LinkedList<Node<Value>>>> pathsOfParts;
   LinkedList<LinkedList<Node<Value>>> curSeq;
+  ArrayList<Node<Value>> nodes;
   long pathCount;
   long eCost;
   long eSeq;
@@ -110,6 +111,7 @@ public class EventProcessor<Value> {
   public void constructGraph2(ArrayList<Node<Value>> nodes) {
 	  long startTime = System.currentTimeMillis();
 	  long nanoStartTime = System.nanoTime();
+	  this.nodes=nodes;
 
 	  for(Node<Value> node: nodes){
 		  add2(node);
@@ -243,6 +245,7 @@ public class EventProcessor<Value> {
 	    //System.out.println("----------------------------------------");
 	    long startTime = System.currentTimeMillis();
 	    long nanoStartTime = System.nanoTime();
+	    BackupOriginal();
 	    findCuts2(ps, nodes);
 
 	    // call DFS for each of the partition and record # of sequences
@@ -268,6 +271,7 @@ public class EventProcessor<Value> {
 	    //System.out.println("----------------------------------------");
 	    long startTime = System.currentTimeMillis();
 	    long nanoStartTime = System.nanoTime();
+	    BackupOriginal();
 	    findCleanCuts(ps, nodes);
 
 	    // call DFS for each of the partition and record # of sequences
@@ -339,7 +343,18 @@ public class EventProcessor<Value> {
 	  return graph.getPaths(node);
   }
 
-
+  @SuppressWarnings("unchecked")
+  public void BackupOriginal(){
+	  // backup original successors and predecessors
+	  sourceNode.successors2=(HashSet<Node<Value>>) sourceNode.successors.clone();
+	  targetNode.predecessors2=(HashSet<Node<Value>>) targetNode.predecessors.clone();
+	  
+	  for (Node<Value> node : nodes){
+		  node.successors2=(HashSet<Node<Value>>) node.successors.clone();
+		  node.predecessors2=(HashSet<Node<Value>>) node.predecessors.clone();
+	  }
+  }
+  
   @SuppressWarnings("unchecked")
   public void findCleanCuts(int limit, ArrayList<Node<Value>> nodes){
       System.out.println("----------------------------------------");
@@ -354,14 +369,6 @@ public class EventProcessor<Value> {
 	  // count number of partitions based on the limit
 	  //int nPartitions= (nodes.size()%limit == 0? nodes.size()/limit : nodes.size()/limit +1);
 	  
-	  // backup original successors and predecessors
-	  sourceNode.successors2=(HashSet<Node<Value>>) sourceNode.successors.clone();
-	  targetNode.predecessors2=(HashSet<Node<Value>>) targetNode.predecessors.clone();
-	  
-	  for (Node<Value> node : nodes){
-		  node.successors2=(HashSet<Node<Value>>) node.successors.clone();
-		  node.predecessors2=(HashSet<Node<Value>>) node.predecessors.clone();
-	  }
 
 	  int i=0;
 	  int j=0;
@@ -423,10 +430,11 @@ public class EventProcessor<Value> {
 		  //System.out.println("LastNodes : " + lastNodes);
 		  
 		  EventProcessor<Value> cutPart = new EventProcessor<Value>();
-		  for (Node<Value> node : partNodes){
-			  //node.successors
-			  cutPart.add2(node);
-		  }
+		  cutPart.constructGraph2(partNodes);
+		  //for (Node<Value> node : partNodes){
+			  ////node.successors
+			  //cutPart.add2(node);
+		  //}
 
 		  //System.out.println("Successor Before Adjust:");
 		  //for (Node<Value> node : partNodes){
@@ -460,6 +468,10 @@ public class EventProcessor<Value> {
       System.out.println("Partition Time: " + nanoElapsedTime +" ns");
   }
 
+  /**
+   * remove a first node
+   * @param node
+   */
   private void removeFirst(Node<Value> node) {
 	  sourceNode.successors.addAll(node.successors);
 	  for (Node<Value> node1 : node.successors){
@@ -469,7 +481,7 @@ public class EventProcessor<Value> {
 	  sourceNode.successors.remove(node);
   }
 
-@SuppressWarnings("unchecked")
+  @SuppressWarnings("unchecked")
   private boolean checkCleanCut(HashSet<Node<Value>> lastNodes, ArrayList<Node<Value>> partNodes) {
 
 	  HashSet<Node<Value>> nextNodes = (HashSet<Node<Value>>) sourceNode.successors.clone();
@@ -493,6 +505,164 @@ public class EventProcessor<Value> {
 		  //System.out.println("Last: "+ node + " Successors:" + lastNodePartitionSuccessors);
 	  }
 	  return true;
+  }
+  
+  /**
+   * returns the number of events in the graph
+   * @return
+   */
+  public int size(){
+	  return this.nodes.size();
+  }
+  
+  /**
+   * returns the number of edges in the graph
+   * @return
+   */
+  public int nEdges(){
+	  int nEdges=0;
+	  for (Node<Value> node :nodes){
+		  nEdges +=node.successors.size();
+	  }
+	  return nEdges;
+  }
+  
+  /**
+   * returns the number of edges in the original graph
+   * @return
+   */
+  public int nEdgesOriginal(){
+	  int nEdges=0;
+	  for (Node<Value> node :nodes){
+		  nEdges +=node.successors2.size();
+	  }
+	  return nEdges;
+  }
+  
+  /**
+   * calculates the memory cost of a partitioning
+   * @param pIndices
+   * 		contains the indices of the cutpoints
+   * @return
+   */
+  public long MemCost(ArrayList<Integer> pIndices){
+	  long memCost=size()+nEdgesOriginal();
+	  ArrayList<EventProcessor<Value>> tempCutParts;
+	  tempCutParts=constructGraphFromCuts(pIndices);
+	  int i;
+	  for(i=0; i<tempCutParts.size();i++){
+		  memCost += Math.pow(2, tempCutParts.get(i).size()) 
+				  	+ (tempCutParts.get(i).size()*(tempCutParts.get(i).size()+1)/2);
+		  
+	  }
+  
+	  return memCost;
+  }
+  
+  private ArrayList<EventProcessor<Value>> constructGraphFromCuts(ArrayList<Integer> pIndices) {
+	  int i=0;
+	  int j, k;
+
+	  HashSet<Node<Value>> firstNodes = null ; // new HashSet<Node<Value>>();
+	  HashSet<Node<Value>> lastNodes = null ; // new HashSet<Node<Value>>();
+	  ArrayList<EventProcessor<Value>> tempCutParts = new ArrayList<EventProcessor<Value>>();
+	  
+	  
+	  for (j=0; j< pIndices.size();j++){
+		  k=pIndices.get(j);
+		  ArrayList<Node<Value>> partNodes = new ArrayList<Node<Value>>();
+		  firstNodes=cutParts.get(i).firstNodes;
+		  lastNodes=cutParts.get(k-1).lastNodes;
+		  
+		  while(i<k){
+			  partNodes.addAll(cutParts.get(i).nodes);
+			  i++;
+
+		  }
+		  EventProcessor<Value> cutPart = new EventProcessor<Value>();
+		  cutPart.constructGraph2(partNodes);
+		  cutPart.adjustFirstNodes(firstNodes);
+		  cutPart.adjustLastNodes(lastNodes);
+		  tempCutParts.add(j, cutPart);
+
+	  }
+
+	  // add the last partition
+	  ArrayList<Node<Value>> partNodes = new ArrayList<Node<Value>>();
+	  firstNodes=cutParts.get(i).firstNodes;
+	  lastNodes=cutParts.get(cutParts.size()-1).lastNodes;
+	  
+	  while(i<cutParts.size()){
+		  partNodes.addAll(cutParts.get(i).nodes);
+		  i++;
+	  }
+	  EventProcessor<Value> cutPart = new EventProcessor<Value>();
+	  cutPart.constructGraph2(partNodes);
+	  cutPart.adjustFirstNodes(firstNodes);
+	  cutPart.adjustLastNodes(lastNodes);
+	  tempCutParts.add(j, cutPart);
+	  
+	  return tempCutParts;
+  }
+
+  /**
+   * calculates the cpu cost of a partitioning
+   * @param pIndices
+   * 		contains the indices of the cutpoints
+   * @return
+   */
+  public long CPUCost(ArrayList<Integer> pIndices){
+	  long cpuCost=0;
+	  long cpuSum=0;
+	  long cpuProduct=1;
+	  ArrayList<EventProcessor<Value>> tempCutParts;
+	  tempCutParts=constructGraphFromCuts(pIndices);
+	  int i;
+	  for(i=0; i<tempCutParts.size();i++){
+		  cpuSum += tempCutParts.get(i).nEdges() * Math.pow(2, tempCutParts.get(i).size());
+		  cpuProduct *= Math.pow(2, tempCutParts.get(i).size());
+	  }
+	  cpuCost=cpuSum + cpuProduct;
+	  return cpuCost;
+  }
+  
+  /**
+   * Branch and Bound Algorithm to find optimal partitioning
+   * @param nCutPoints
+   * @param memLimit
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public ArrayList<Integer> BranchAndBound(Integer nCutPoints, long memLimit){
+	  ArrayList<Integer> solution = null;
+	  long minCPU = CPUCost( new ArrayList<Integer>() );
+	  Queue<ArrayList<Integer>> searchSpace = new LinkedList<ArrayList<Integer>>();
+	  searchSpace.add( new ArrayList<Integer>() );
+	  int lastCutofTemp = 0;
+
+	  while(!searchSpace.isEmpty()){
+		  ArrayList<Integer> temp = searchSpace.remove();
+		  long tempCost = CPUCost( temp );
+		  if(minCPU > tempCost){
+			  minCPU = tempCost;
+			  solution = temp;
+		  }
+		  if(temp.isEmpty())
+			  lastCutofTemp = 0;
+		  else
+			  lastCutofTemp = temp.get( temp.size()-1);
+		  
+		  while(lastCutofTemp < nCutPoints ){
+			  ArrayList<Integer> searchNode = ( ArrayList<Integer> ) temp.clone();
+			  lastCutofTemp++;
+			  searchNode.add( lastCutofTemp );
+			  if( MemCost( searchNode ) < memLimit){
+				  searchSpace.add( searchNode );
+			  }
+		  }
+		  
+	  }
+	  return solution;
   }
 
 	public void applyDfsOnParts() {
@@ -577,14 +747,6 @@ public class EventProcessor<Value> {
 	  // count number of partitions based on the limit
 	  int nPartitions= (nodes.size()%limit == 0? nodes.size()/limit : nodes.size()/limit +1);
 	  
-	  // backup original successors and predecessors
-	  sourceNode.successors2=(HashSet<Node<Value>>) sourceNode.successors.clone();
-	  targetNode.predecessors2=(HashSet<Node<Value>>) targetNode.predecessors.clone();
-	  
-	  for (Node<Value> node : nodes){
-		  node.successors2=(HashSet<Node<Value>>) node.successors.clone();
-		  node.predecessors2=(HashSet<Node<Value>>) node.predecessors.clone();
-	  }
 
 	  int i=0;
 	  int j=0;
