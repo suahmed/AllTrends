@@ -508,58 +508,6 @@ public class EventProcessor<Value> {
   }
   
   /**
-   * returns the number of events in the graph
-   * @return
-   */
-  public int size(){
-	  return this.nodes.size();
-  }
-  
-  /**
-   * returns the number of edges in the graph
-   * @return
-   */
-  public int nEdges(){
-	  int nEdges=0;
-	  for (Node<Value> node :nodes){
-		  nEdges +=node.successors.size();
-	  }
-	  return nEdges;
-  }
-  
-  /**
-   * returns the number of edges in the original graph
-   * @return
-   */
-  public int nEdgesOriginal(){
-	  int nEdges=0;
-	  for (Node<Value> node :nodes){
-		  nEdges +=node.successors2.size();
-	  }
-	  return nEdges;
-  }
-  
-  /**
-   * calculates the memory cost of a partitioning
-   * @param pIndices
-   * 		contains the indices of the cutpoints
-   * @return
-   */
-  public long MemCost(ArrayList<Integer> pIndices){
-	  long memCost=size()+nEdgesOriginal();
-	  ArrayList<EventProcessor<Value>> tempCutParts;
-	  tempCutParts=constructGraphFromCuts(pIndices);
-	  int i;
-	  for(i=0; i<tempCutParts.size();i++){
-		  memCost += Math.pow(2, tempCutParts.get(i).size()) 
-				  	+ (tempCutParts.get(i).size()*(tempCutParts.get(i).size()+1)/2);
-		  
-	  }
-  
-	  return memCost;
-  }
-  
-  /**
    * construct partitions from given cutpoints
    * @param pIndices
    * @return
@@ -611,23 +559,123 @@ public class EventProcessor<Value> {
   }
 
   /**
+   * returns the number of events in the graph
+   * @return
+   */
+  public int size(){
+	  return this.nodes.size();
+  }
+  
+  /**
+   * returns the number of edges in the graph
+   * @return
+   */
+  public int nEdges(){
+	  int nEdges=0;
+	  for (Node<Value> node :nodes){
+		  nEdges +=node.successors.size();
+	  }
+	  return nEdges;
+  }
+  
+  /**
+   * returns the number of edges in the original graph
+   * @return
+   */
+  public int nEdgesOriginal(){
+	  int nEdges=0;
+	  for (Node<Value> node :nodes){
+		  nEdges +=node.successors2.size();
+	  }
+	  return nEdges;
+  }
+  
+  /**
+   * calculates the memory cost of a partitioning
+   * @param pIndices
+   * 		contains the indices of the cutpoints
+   * @return
+   */
+  public long MemCost(ArrayList<Integer> pIndices){
+	  long memCost=size()+nEdgesOriginal();
+  
+	  long nEdges;
+	  long nNodes;
+	  int i=0;
+	  int j, k;
+	  
+	  for (j=0; j< pIndices.size();j++){
+		  k=pIndices.get(j);
+		  nEdges=0;
+		  nNodes=0;
+		  while(i<k){
+			  nEdges += cutParts.get(i).nEdges() ;
+			  nNodes += cutParts.get(i).size();
+			  i++;
+
+		  }
+		  memCost += Math.pow(3, nNodes/3)*nNodes; 
+	  }
+
+	  // for the last partition
+	  
+	  nEdges=0;
+	  nNodes=0;
+	  while(i<cutParts.size()){
+		  nEdges += cutParts.get(i).nEdges() ;
+		  nNodes += cutParts.get(i).size();
+		  i++;
+
+	  }
+	  memCost += Math.pow(3, nNodes/3)*nNodes; 
+
+	  return memCost;
+  }
+  
+  
+  /**
    * calculates the cpu cost of a partitioning
    * @param pIndices
    * 		contains the indices of the cutpoints
    * @return
    */
   public long CPUCost(ArrayList<Integer> pIndices){
-	  long cpuCost=0;
+	  long cpuCost=(long)Math.pow(size(), 4);
 	  long cpuSum=0;
 	  long cpuProduct=1;
-	  ArrayList<EventProcessor<Value>> tempCutParts;
-	  tempCutParts=constructGraphFromCuts(pIndices);
-	  int i;
-	  for(i=0; i<tempCutParts.size();i++){
-		  cpuSum += tempCutParts.get(i).nEdges() * Math.pow(2, tempCutParts.get(i).size());
-		  cpuProduct *= Math.pow(2, tempCutParts.get(i).size());
+
+	  long nEdges;
+	  long nNodes;
+	  int i=0;
+	  int j, k;
+	  
+	  for (j=0; j< pIndices.size();j++){
+		  k=pIndices.get(j);
+		  nEdges=0;
+		  nNodes=0;
+		  while(i<k){
+			  nEdges += cutParts.get(i).nEdges() ;
+			  nNodes += cutParts.get(i).size();
+			  i++;
+		  }
+		  cpuSum += nEdges + Math.pow(3, nNodes/3);
+		  cpuProduct *= Math.pow(3, nNodes/3);
 	  }
-	  cpuCost=cpuSum + cpuProduct;
+
+	  // for the last partition
+	  
+	  nEdges=0;
+	  nNodes=0;
+	  while(i<cutParts.size()){
+		  nEdges += cutParts.get(i).nEdges() ;
+		  nNodes += cutParts.get(i).size();
+		  i++;
+	  }
+	  cpuSum += nEdges + Math.pow(3, nNodes/3);
+	  cpuProduct *= Math.pow(3, nNodes/3);
+	  
+	  cpuCost += cpuSum + cpuProduct;
+
 	  return cpuCost;
   }
   
@@ -666,6 +714,97 @@ public class EventProcessor<Value> {
 			  }
 		  }
 		  
+	  }
+	  return solution;
+  }
+
+  /**
+   * Exhaustive Search Algorithm to find optimal partitioning
+   * @param nCutPoints
+   * @param memLimit
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public ArrayList<Integer> ExhaustiveSearch(Integer nCutPoints, long memLimit){
+	  ArrayList<Integer> solution = null;
+	  long minCPU = CPUCost( new ArrayList<Integer>() );
+	  Queue<ArrayList<Integer>> searchSpace = new LinkedList<ArrayList<Integer>>();
+	  searchSpace.add( new ArrayList<Integer>() );
+	  int lastCutofTemp = 0;
+
+	  while(!searchSpace.isEmpty()){
+		  ArrayList<Integer> temp = searchSpace.remove();
+		  long tempCost = CPUCost( temp );
+		  if(minCPU > tempCost){
+			  minCPU = tempCost;
+			  solution = temp;
+		  }
+		  if(temp.isEmpty())
+			  lastCutofTemp = 0;
+		  else
+			  lastCutofTemp = temp.get( temp.size()-1);
+		  
+		  while(lastCutofTemp < nCutPoints ){
+			  ArrayList<Integer> searchNode = ( ArrayList<Integer> ) temp.clone();
+			  lastCutofTemp++;
+			  searchNode.add( lastCutofTemp );
+			  searchSpace.add( searchNode );
+		  }
+		  
+	  }
+	  return solution;
+  }
+
+  /**
+   * GreedyBestInLevel Algorithm to find optimal partitioning
+   * @param nCutPoints
+   * @param memLimit
+   * @return
+   */
+  @SuppressWarnings("unchecked")
+  public ArrayList<Integer> GreedyBestInLevel(Integer nCutPoints, long memLimit){
+	  ArrayList<Integer> solution = null;
+	  ArrayList<Integer> temp=null;
+	  TreeSet<Integer> temp2;
+	  long minCPU = Long.MAX_VALUE;
+
+	  Queue<ArrayList<Integer>> searchSpace = new LinkedList<ArrayList<Integer>>();
+	  searchSpace.add( new ArrayList<Integer>() );
+
+	  while(!searchSpace.isEmpty()){
+		  ArrayList<Integer> levelSolution = null;
+		  long levelMinCPU = Long.MAX_VALUE;
+		  while(!searchSpace.isEmpty()){
+			  temp = searchSpace.remove();
+			  long tempCost = CPUCost( temp );
+			  if(minCPU > tempCost){
+				  levelMinCPU = tempCost;
+				  levelSolution = temp;
+			  }
+	
+		  }
+		  
+		  if(minCPU > levelMinCPU){
+			  minCPU = levelMinCPU;
+			  solution = levelSolution;
+			  temp=levelSolution;
+		  }
+		  else{
+			  break;
+		  }
+
+		  temp2 =new TreeSet<Integer>(temp);
+
+		  for( Integer i=1 ; i <= nCutPoints ; i++){
+			  if(!temp2.contains(i)){
+				  TreeSet<Integer> temp3 = (TreeSet<Integer>) temp2.clone();
+				  temp3.add(i);
+				  
+				  ArrayList<Integer> searchNode = new ArrayList<Integer>(temp3);
+				  searchSpace.add( searchNode );
+			  }
+		  }
+			  
 	  }
 	  return solution;
   }
