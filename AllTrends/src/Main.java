@@ -27,12 +27,15 @@ public class Main {
 		String path="D:\\git\\AllTrends\\src\\input_output\\";
 		String inputfile ="inputfile.txt";
 		String outputfile ="outputfile.txt";
+		String textFile1 ="textFile1.txt";
+		String textStartVertices1 ="textStartVertices1.txt";
+		String textEndVertices1 ="textEndVertices1.txt";
 		String line = "";
 		ArrayList<Node<String>> nodes = new ArrayList<Node<String>>();
 		int ps=15; // partition size: pm=1,ps=># of events; pm=2,ps=> interval
 		//int pm=1; // partition method: 1 => by # of events, 2 => by interval
 					// method=2 based partitioning is not yet implemented
-		int alg=1; // 4=> baseline, 3=> dDFS, 2=> nDFS, 1=> Fusion
+		int alg=0; // 4=> baseline, 3=> dDFS, 2=> nDFS, 1=> Fusion
 		boolean print=false;
 		  
 		  for (int i=0; i< args.length; i++){
@@ -72,6 +75,36 @@ public class Main {
 					ep.BaseLine(nodes, out);
 				}
 			      
+				// output vertices and edges
+				if(alg==0){
+					ep.constructGraph2(nodes);
+					ArrayList<String> edges = ep.getEdges();
+					ArrayList<String> startVertices =ep.getStartVertices();
+					ArrayList<String> endVertices   =ep.getEndVertices();
+					PrintWriter out1 = null;
+					
+					System.out.println("Number of Edges: " + edges.size());
+					System.out.println("Number of Start Vertices: " + startVertices.size());
+					System.out.println("Number of End Vertices: " + endVertices.size());
+
+					out1 = new PrintWriter(path+textFile1);
+					for(String line1 : edges){
+						out1.println(line1);
+					}
+					out1.close();
+					out1 = new PrintWriter(path+textStartVertices1);
+					for(String line1 : startVertices){
+						out1.println(line1);
+					}
+					out1.close();
+					out1 = new PrintWriter(path+textEndVertices1);
+					for(String line1 : endVertices){
+						out1.println(line1);
+					}
+					out1.close();
+					
+				}
+				
 				// constructGraph for dDFS and nDFS
 				if(alg==1 || alg==2 || alg==3){
 					ep.constructGraph2(nodes);
@@ -101,11 +134,5 @@ public class Main {
 	            }
 	        
 			} catch (IOException e) { System.err.println(e); }		  
-			  
-
 	  }
-
-	
-	  
-
 }

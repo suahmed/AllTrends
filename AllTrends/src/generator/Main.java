@@ -22,7 +22,8 @@ public class Main {
 	*/
 	public static void main(String[] args) {
 		int n=50;
-		int branchFactor = 7; // random
+		//int branchFactor = 7; 
+		int branchFactor = 0; // random
 		String path="D:\\git\\AllTrends\\src\\input_output\\";
 		String filename = new String("inputfile.txt");
 		  		  
@@ -45,26 +46,41 @@ public class Main {
 
 		int j=0;
 		int i=n;
-		int value=1;
+		int value=0;
+		int value2=0;
 		int time=0;
 		int id=0;
+		int branchType=branchFactor;
 
 		try {		
 			// open file for writing
 	        PrintWriter out = new PrintWriter(filename);
+	        
+	        Random rndNumbers = new Random(System.currentTimeMillis());
 
 			//generate and write events
 			while(i>0){
-				value = ((n - i)/branchFactor + 1) * branchFactor - j;
-				time = time + 2 ; 
-				id++;
-				
-				// Write event
-				out.println(id + "," + value + "," + time);
-				i--;
-				//j++;
-				//if (j==branchFactor) j=0;
-				j= (++j) % branchFactor;
+				//value = ((n - i)/branchFactor + 1) * branchFactor - j;
+				if(branchType==0){
+					branchFactor=1+rndNumbers.nextInt(10);
+					// 
+				}
+				value = value2 = value2 + branchFactor; // decrement value for branchFactor times in another loop
+				for (j=branchFactor; j >0 && i>0 ; j--){
+					
+					time = time + 2 ; 
+					id++;
+					
+					// Write event
+					out.println(id + "," + value + "," + time);
+					value--;
+					i--;
+					//j++;
+					//if (j==branchFactor) j=0;
+					
+					//j= (++j) % branchFactor; // need to remove when for loop is added
+				}
+				//
 			}
 			out.close();
 			

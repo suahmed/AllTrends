@@ -18,8 +18,7 @@ class Node<Value> implements Comparable<Node<Value>>{
     HashSet<Node<Value>> successors = null;
     HashSet<Node<Value>> predecessors = null;
     
-    // backup successors and predecessors
-    // when creating partitions
+    // backup successors and predecessors when creating partitions
     // will be needed when combining sequences from partitions
     HashSet<Node<Value>> successors2 = null;
     HashSet<Node<Value>> predecessors2 = null;
@@ -57,7 +56,7 @@ class Node<Value> implements Comparable<Node<Value>>{
       //successors = new HashSet<Node<Value>>();
       //predecessors = new HashSet<Node<Value>>();
     }
-*/   
+    */   
 	@Override
 	public int compareTo(Node<Value> obj) {
 		//final Node<?> other = (Node<?>) obj;

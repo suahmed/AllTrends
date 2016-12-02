@@ -4,7 +4,7 @@ The event generator:
 Location: inside package called generator
 
 Paramenters:
-1. -b NUM : specifies branching factor and interger NUM is used as the branching factor. default value for NUM is 7.
+1. -b NUM : specifies branching factor and interger NUM is used as the branching factor. default value for NUM is 0 for random branching factor.
 
 2. -n NUM : spectifies the number of events to generate. Integer NUM is the number of events generated. default is 50.
 
@@ -15,6 +15,10 @@ Example Usage:
 To generate 60 events with branching factor 6 and to save those in inputB6N60.txt the class file should be called from the root of the project's bin directory as follows:
 
 java generator.Main -n 60 -b 6 -o inputB6N60.txt
+
+generate 100 events with random branching factor (default) and save to input100random.txt
+
+java generator.Main -n 100 -o input100random.txt
 
 =======================================================================
 
